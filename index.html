@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>KeyJam Pro</title>
+<script src="https://unpkg.com/tone"></script>
+
+<style>
+
+/* ===== GLOBAL ===== */
+body {
+  margin: 0;
+  background: #0f0f0f;
+  color: white;
+  font-family: sans-serif;
+}
+
+/* ===== MAIN LAYOUT ===== */
+.main {
+  display: flex;
+  gap: 40px;
+  padding: 20px;
+  align-items: flex-start;
+}
+
+/* LEFT PANEL */
+.left {
+  width: 300px;
+}
+
+/* RIGHT PANEL */
+.right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ===== SET BLOCK ===== */
+.set-block {
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #333;
+  border-radius: 10px;
+}
+
+.set-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+button {
+  background: #00ffcc;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ===== KEYS ===== */
+.key {
+  width: 60px;
+  height: 90px;
+  background: #222;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.1s;
+}
+
+.key.active {
+  background: #00ffcc;
+  color: black;
+  transform: scale(1.1);
+}
+
+/* ===== PIANO ===== */
+.piano {
+  position: relative;
+  width: fit-content;
+  margin-top: 20px;
+}
+
+/* WHITE KEYS */
+.white-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* BLACK KEYS */
+.black-row {
+  position: absolute;
+  top: -25px;
+  left: 46px;
+  display: flex;
+  gap: 52px;
+}
+
+/* BLACK KEY STYLE */
+.key.black {
+  width: 40px;
+  height: 60px;
+  background: black;
+  z-index: 2;
+}
+
+/* GAP BETWEEN D# and F# */
+.gap {
+  width: 60px;
+}
+
+/* ===== OCTAVE BAR ===== */
+#octaveBar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.oct {
+  padding: 6px 10px;
+  background: #222;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.oct.active {
+  background: #00ffcc;
+  color: black;
+}
+
+/* ===== ROW ===== */
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+/* REMOVE SCROLL ISSUE */
+body {
+  overflow-x: hidden;
+}
+</style>
+</head>
+
+<body>
+
+<div class="main">
+
+<!-- LEFT -->
+<div class="left">
+  <h2>🎛 Performance Sets</h2>
+
+  <div class="set-block">
+    <div class="set-header">
+      <span id="setName0">Pop Groove</span>
+      <button onclick="openSetMenu(0)">Change</button>
+    </div>
+    <div class="row">
+      <div class="key" data-key="q">Q</div>
+      <div class="key" data-key="w">W</div>
+      <div class="key" data-key="e">E</div>
+      <div class="key" data-key="r">R</div>
+    </div>
+  </div>
+
+  <div class="set-block">
+    <div class="set-header">
+      <span id="setName1">Trap</span>
+      <button onclick="openSetMenu(1)">Change</button>
+    </div>
+    <div class="row">
+      <div class="key" data-key="a">A</div>
+      <div class="key" data-key="s">S</div>
+      <div class="key" data-key="d">D</div>
+      <div class="key" data-key="f">F</div>
+    </div>
+  </div>
+
+  <div class="set-block">
+    <div class="set-header">
+      <span id="setName2">LoFi</span>
+      <button onclick="openSetMenu(2)">Change</button>
+    </div>
+    <div class="row">
+      <div class="key" data-key="z">Z</div>
+      <div class="key" data-key="x">X</div>
+      <div class="key" data-key="c">C</div>
+      <div class="key" data-key="v">V</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- RIGHT -->
+<div class="right">
+  <h2>🎹 Melody</h2>
+
+  <div id="octaveBar">
+    <div class="oct" data-oct="1">C1</div>
+    <div class="oct" data-oct="2">C2</div>
+    <div class="oct" data-oct="3">C3</div>
+    <div class="oct active" data-oct="4">C4</div>
+    <div class="oct" data-oct="5">C5</div>
+    <div class="oct" data-oct="6">C6</div>
+    <div class="oct" data-oct="7">C7</div>
+  </div>
+
+  <div class="piano">
+
+    <div class="black-row">
+      <div class="key black" data-key="y">Y<br>C#</div>
+      <div class="key black" data-key="u">U<br>D#</div>
+      <div class="gap"></div>
+      <div class="key black" data-key="i">I<br>F#</div>
+      <div class="key black" data-key="o">O<br>G#</div>
+      <div class="key black" data-key="p">P<br>A#</div>
+    </div>
+
+    <div class="white-row">
+      <div class="key" data-key="g">G<br>C</div>
+      <div class="key" data-key="h">H<br>D</div>
+      <div class="key" data-key="j">J<br>E</div>
+      <div class="key" data-key="k">K<br>F</div>
+      <div class="key" data-key="l">L<br>G</div>
+      <div class="key" data-key=";">;<br>A</div>
+      <div class="key" data-key="'">'<br>B</div>
+      <div class="key" data-key="[">[<br>C</div>
+      <div class="key" data-key="]">]<br>D</div>
+      <div class="key" data-key="\\">\ <br>E</div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+<script>
+
+// =======================
+// AUDIO START
+// =======================
+let started = false;
+document.body.addEventListener("click", async () => {
+  if (!started) {
+    await Tone.start();
+    started = true;
+    console.log("Audio started");
+  }
+});
+
+// =======================
+// STATE
+// =======================
+let octave = 4;
+let currentRoot = "C";
+
+// 3 rows → QWER, ASDF, ZXCV
+let activeSets = [0, 1, 3];
+
+// =======================
+// INSTRUMENTS
+// =======================
+const piano = new Tone.PolySynth().toDestination();
+const bass = new Tone.Synth({ oscillator:{type:"sine"} }).toDestination();
+
+const kick = new Tone.MembraneSynth().toDestination();
+const snare = new Tone.NoiseSynth().toDestination();
+const hihat = new Tone.MetalSynth().toDestination();
+const clap = new Tone.NoiseSynth().toDestination();
+const crash = new Tone.MetalSynth().toDestination();
+const openHat = new Tone.MetalSynth().toDestination();
+const rim = new Tone.Synth().toDestination();
+const tom = new Tone.MembraneSynth().toDestination();
+const ride = new Tone.MetalSynth().toDestination();
+
+// =======================
+// HELPERS
+// =======================
+const now = () => Tone.now();
+
+function playBass(note){
+  bass.triggerAttackRelease(note,"8n", undefined, Math.random()*0.3+0.7);
+}
+
+function playChord(root,type="major",oct=4){
+  const map={
+    major:[0,4,7],
+    minor:[0,3,7],
+    seventh:[0,4,7,10]
+  };
+
+  map[type].forEach(i=>{
+    const n = Tone.Frequency(root+oct).transpose(i).toNote();
+    piano.triggerAttackRelease(n,"8n");
+  });
+}
+
+function playArp(root){
+  const base = Tone.Frequency(root+"4");
+  const notes = [
+    base.toNote(),
+    base.transpose(4).toNote(),
+    base.transpose(7).toNote(),
+    base.transpose(12).toNote()
+  ];
+
+  notes.forEach((n,i)=>{
+    piano.triggerAttackRelease(n,"16n", now()+i*0.05);
+  });
+}
+
+function highlight(key){
+  const el=document.querySelector(`[data-key="${key}"]`);
+  if(!el) return;
+  el.classList.add("active");
+  setTimeout(()=>el.classList.remove("active"),100);
+}
+
+// =======================
+// PIANO MAPPING
+// =======================
+const whiteKeys = {
+  g:"C", h:"D", j:"E",
+  k:"F", l:"G", ";":"A", "'":"B",
+  "[":"C", "]":"D", "\\":"E"
+};
+
+const blackKeys = {
+  y:"C#", u:"D#", i:"F#", o:"G#", p:"A#"
+};
+
+function getNote(key){
+  let note = whiteKeys[key] || blackKeys[key];
+  if(!note) return null;
+
+  let oct = octave;
+
+  // next octave extension
+  if(["[","]","\\"].includes(key)){
+    oct = octave + 1;
+  }
+
+  return note + oct;
+}
+
+// =======================
+// OCTAVE UI + NUMBER KEYS
+// =======================
+function setOctave(oct){
+  octave = oct;
+
+  document.querySelectorAll(".oct").forEach(el=>{
+    el.classList.remove("active");
+    if(parseInt(el.dataset.oct) === oct){
+      el.classList.add("active");
+    }
+  });
+}
+
+// click UI
+document.querySelectorAll(".oct").forEach(el=>{
+  el.addEventListener("click",()=>{
+    setOctave(parseInt(el.dataset.oct));
+  });
+});
+
+// =======================
+// SET NAMES
+// =======================
+const setNames = [
+  "Pop Groove",
+  "Trap",
+  "Rock",
+  "LoFi",
+  "EDM Drop",
+  "Bass",
+  "Chords",
+  "Arp",
+  "FX",
+  "Hybrid"
+];
+
+// =======================
+// CHANGE BUTTON (FIXED)
+// =======================
+window.openSetMenu = function(rowIndex){
+
+  const choice = prompt(
+`Choose Set:
+0 Pop Groove
+1 Trap
+2 Rock
+3 LoFi
+4 EDM Drop
+5 Bass
+6 Chords
+7 Arp
+8 FX
+9 Hybrid`);
+
+  if(choice === null) return;
+
+  const num = parseInt(choice);
+  if(isNaN(num) || num<0 || num>9) return;
+
+  activeSets[rowIndex] = num;
+  document.getElementById("setName"+rowIndex).innerText = setNames[num];
+};
+
+// =======================
+// SET DEFINITIONS (WORKING)
+// =======================
+const sets = [
+
+  // 0 POP
+  [
+    ()=>{ kick.triggerAttackRelease("C1","8n"); playBass(currentRoot+"2"); },
+    ()=>snare.triggerAttackRelease("8n"),
+    ()=>hihat.triggerAttackRelease("16n"),
+    ()=>clap.triggerAttackRelease("16n")
+  ],
+
+  // 1 TRAP
+  [
+    ()=>{ kick.triggerAttackRelease("C1","8n"); playBass(currentRoot+"1"); },
+    ()=>snare.triggerAttackRelease("8n"),
+    ()=>hihat.triggerAttackRelease("32n"),
+    ()=>openHat.triggerAttackRelease("8n")
+  ],
+
+  // 2 ROCK
+  [
+    ()=>{ kick.triggerAttackRelease("C1","8n"); playBass(currentRoot+"2"); },
+    ()=>snare.triggerAttackRelease("8n"),
+    ()=>ride.triggerAttackRelease("16n"),
+    ()=>crash.triggerAttackRelease("8n")
+  ],
+
+  // 3 LOFI
+  [
+    ()=>kick.triggerAttackRelease("C1","8n"),
+    ()=>rim.triggerAttackRelease("C3","16n"),
+    ()=>hihat.triggerAttackRelease("16n"),
+    ()=>playChord(currentRoot,"minor",5)
+  ],
+
+  // 4 EDM
+  [
+    ()=>kick.triggerAttackRelease("C1","8n"),
+    ()=>snare.triggerAttackRelease("16n"),
+    ()=>hihat.triggerAttackRelease("16n"),
+    ()=>crash.triggerAttackRelease("8n")
+  ],
+
+  // 5 BASS
+  [
+    ()=>playBass(currentRoot+"1"),
+    ()=>playBass(currentRoot+"2"),
+    ()=>playBass(currentRoot+"3"),
+    ()=>playBass(currentRoot+"2")
+  ],
+
+  // 6 CHORDS
+  [
+    ()=>playChord(currentRoot,"major",4),
+    ()=>playChord(currentRoot,"minor",4),
+    ()=>playChord(currentRoot,"seventh",4),
+    ()=>playChord(currentRoot,"major",5)
+  ],
+
+  // 7 ARP
+  [
+    ()=>playArp(currentRoot),
+    ()=>playArp(currentRoot),
+    ()=>playArp(currentRoot),
+    ()=>playArp(currentRoot)
+  ],
+
+  // 8 FX
+  [
+    ()=>crash.triggerAttackRelease("8n"),
+    ()=>openHat.triggerAttackRelease("8n"),
+    ()=>{
+      const note=["C4","D#4","F4","G#4"][Math.floor(Math.random()*4)];
+      piano.triggerAttackRelease(note,"8n");
+    },
+    ()=>playChord(currentRoot,"major",6)
+  ],
+
+  // 9 HYBRID
+  [
+    ()=>{
+      kick.triggerAttackRelease("C1","8n");
+      playBass(currentRoot+"2");
+    },
+    ()=>{
+      snare.triggerAttackRelease("8n");
+      playChord(currentRoot,"minor",4);
+    },
+    ()=>{
+      hihat.triggerAttackRelease("16n");
+      playArp(currentRoot);
+    },
+    ()=>{
+      crash.triggerAttackRelease("8n");
+      playChord(currentRoot,"major",5);
+    }
+  ]
+
+];
+
+// =======================
+// KEY HANDLER (FULL FIX)
+// =======================
+document.addEventListener("keydown",(e)=>{
+  const key = e.key.toLowerCase();
+  highlight(key);
+
+  // 🎚 OCTAVE KEYS 1–7
+  if(["1","2","3","4","5","6","7"].includes(key)){
+    setOctave(parseInt(key));
+    return;
+  }
+
+  // 🎹 MELODY
+  const note = getNote(key);
+  if(note){
+    currentRoot = note.slice(0,-1);
+    piano.triggerAttackRelease(note,"8n");
+    playBass(currentRoot+"2");
+  }
+
+  // 🎛 LEFT SIDE (ALL 3 ROWS WORK)
+  const leftRows = [
+    ["q","w","e","r"],
+    ["a","s","d","f"],
+    ["z","x","c","v"]
+  ];
+
+  leftRows.forEach((row,rowIndex)=>{
+    const idx = row.indexOf(key);
+    if(idx !== -1){
+      sets[activeSets[rowIndex]][idx]();
+    }
+  });
+
+});
+
+</script>
+
+</body>
+</html>
