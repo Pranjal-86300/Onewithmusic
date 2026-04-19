@@ -138,6 +138,10 @@ button {
   display: flex;
   gap: 10px;
 }
+/* PAD styling */
+h3 {
+  margin-bottom: 5px;
+}
 
 /* REMOVE SCROLL ISSUE */
 body {
@@ -234,6 +238,17 @@ body {
     </div>
 
   </div>
+  <!-- 🌌 PAD SECTION -->
+<h3 style="margin-top:20px;">🌌 Pads</h3>
+
+<div class="row">
+  <div class="key" data-key="b">B<br>Major</div>
+  <div class="key" data-key="n">N<br>Minor</div>
+  <div class="key" data-key="m">M<br>Dream</div>
+  <div class="key" data-key=",">,<br>Low</div>
+  <div class="key" data-key=".">.<br>High</div>
+  <div class="key" data-key="/">/<br>Stop</div>
+</div>
 </div>
 
 </div>
@@ -250,7 +265,7 @@ document.body.addEventListener("click", async () => {
     console.log("Audio started");
   }
 });
-
+Tone.Destination.volume.value = -6;
 // =======================
 // STATE
 // =======================
@@ -258,23 +273,87 @@ let octave = 4;
 let currentRoot = "C";
 
 // 3 rows → QWER, ASDF, ZXCV
-let activeSets = [0, 1, 3];
+let activeSets = [0, 1, 2];
 
 // =======================
 // INSTRUMENTS
 // =======================
-const piano = new Tone.PolySynth().toDestination();
-const bass = new Tone.Synth({ oscillator:{type:"sine"} }).toDestination();
+// 🎛 MASTER AUDIO CHAIN
+const masterLimiter = new Tone.Limiter(-6);
+const masterGain = new Tone.Gain(0.7);
+const masterEQ = new Tone.EQ3({
+  low: 0,
+  mid: 0,
+  high: -5   // reduce harsh highs
+});
+const compressor = new Tone.Compressor({
+  threshold: -20,
+  ratio: 3,
+  attack: 0.01,
+  release: 0.2
+});
+// connect chain
+masterEQ.chain(masterGain, compressor, masterLimiter, Tone.Destination);
+const piano = new Tone.PolySynth(Tone.Synth, {
+  maxPolyphony: 6
+}).connect(masterEQ);
+const bass = new Tone.Synth({ oscillator:{type:"sine"} }).connect(masterEQ);
+const kick = new Tone.MembraneSynth({
+  envelope: {
+    attack: 0.02,
+    decay: 0.3,
+    sustain: 0
+  }
+}).connect(masterEQ);
+const snare = new Tone.NoiseSynth({
+  envelope: {
+    attack: 0.01,
+    decay: 0.2,
+    sustain: 0
+  }
+}).connect(masterEQ);
+const hihat = new Tone.MetalSynth({
+  frequency: 200,
+  envelope: {
+    attack: 0.01,
+    decay: 0.08,
+    release: 0.02
+  },
+  harmonicity: 3.1,
+  modulationIndex: 16
+}).connect(masterEQ);
+const clap = new Tone.NoiseSynth().connect(masterEQ);
+const crash = new Tone.MetalSynth().connect(masterEQ);
+const openHat = new Tone.MetalSynth().connect(masterEQ);
+const rim = new Tone.Synth().connect(masterEQ);
+const tom = new Tone.MembraneSynth().connect(masterEQ);
+const ride = new Tone.MetalSynth().connect(masterEQ);
+//kick.volume.value = -6;
+//snare.volume.value = -8;
+//hihat.volume.value = -10;
+//clap.volume.value = -8;
+//crash.volume.value = -12;
+// 🌌 PAD
+const padFilter = new Tone.Filter(800, "lowpass");
+const padReverb = new Tone.Reverb({
+  decay: 8,
+  wet: 0.6
+});
+const padDelay = new Tone.FeedbackDelay("8n", 0.3);
 
-const kick = new Tone.MembraneSynth().toDestination();
-const snare = new Tone.NoiseSynth().toDestination();
-const hihat = new Tone.MetalSynth().toDestination();
-const clap = new Tone.NoiseSynth().toDestination();
-const crash = new Tone.MetalSynth().toDestination();
-const openHat = new Tone.MetalSynth().toDestination();
-const rim = new Tone.Synth().toDestination();
-const tom = new Tone.MembraneSynth().toDestination();
-const ride = new Tone.MetalSynth().toDestination();
+const pad = new Tone.PolySynth(Tone.Synth, {
+  oscillator: { type: "sawtooth" },
+  envelope: {
+    attack: 1.2,
+    decay: 1,
+    sustain: 0.9,
+    release: 4
+  }
+});
+pad.volume.value = -20;
+
+// chain effects
+pad.chain(padFilter, padDelay, padReverb, Tone.Destination);
 
 // =======================
 // HELPERS
@@ -318,7 +397,29 @@ function highlight(key){
   el.classList.add("active");
   setTimeout(()=>el.classList.remove("active"),100);
 }
+function playPad(type){
+  pad.releaseAll(); // prevents stacking
+  const base = Tone.Frequency(currentRoot + "4");
 
+  let intervals = [];
+
+  if(type === "major") intervals = [0,4,7,12];
+  if(type === "minor") intervals = [0,3,7,12];
+  if(type === "dream") intervals = [0,4,7,14,19];
+  if(type === "low") intervals = [-12,0,7];
+  if(type === "high") intervals = [12,16,19];
+
+  intervals.forEach(i=>{
+    pad.triggerAttack(base.transpose(i).toNote());
+  });
+}
+
+function stopPad(){
+  pad.releaseAll();
+}
+setInterval(()=>{
+  padFilter.frequency.value = 500 + Math.random()*1500;
+}, 2000);
 // =======================
 // PIANO MAPPING
 // =======================
@@ -371,16 +472,11 @@ document.querySelectorAll(".oct").forEach(el=>{
 // SET NAMES
 // =======================
 const setNames = [
-  "Pop Groove",
-  "Trap",
-  "Rock",
-  "LoFi",
-  "EDM Drop",
+  "Groove",
+  "Backbeat",
   "Bass",
-  "Chords",
-  "Arp",
-  "FX",
-  "Hybrid"
+  "Motion",
+  "Impact"
 ];
 
 // =======================
@@ -390,16 +486,11 @@ window.openSetMenu = function(rowIndex){
 
   const choice = prompt(
 `Choose Set:
-0 Pop Groove
-1 Trap
-2 Rock
-3 LoFi
-4 EDM Drop
-5 Bass
-6 Chords
-7 Arp
-8 FX
-9 Hybrid`);
+0 Groove
+1 Backbeat
+2 Bass
+3 Motion
+4 Impact`);
 
   if(choice === null) return;
 
@@ -414,102 +505,41 @@ window.openSetMenu = function(rowIndex){
 // SET DEFINITIONS (WORKING)
 // =======================
 const sets = [
-
-  // 0 POP
-  [
-    ()=>{ kick.triggerAttackRelease("C1","8n"); playBass(currentRoot+"2"); },
-    ()=>snare.triggerAttackRelease("8n"),
-    ()=>hihat.triggerAttackRelease("16n"),
-    ()=>clap.triggerAttackRelease("16n")
-  ],
-
-  // 1 TRAP
-  [
-    ()=>{ kick.triggerAttackRelease("C1","8n"); playBass(currentRoot+"1"); },
-    ()=>snare.triggerAttackRelease("8n"),
-    ()=>hihat.triggerAttackRelease("32n"),
-    ()=>openHat.triggerAttackRelease("8n")
-  ],
-
-  // 2 ROCK
-  [
-    ()=>{ kick.triggerAttackRelease("C1","8n"); playBass(currentRoot+"2"); },
-    ()=>snare.triggerAttackRelease("8n"),
-    ()=>ride.triggerAttackRelease("16n"),
-    ()=>crash.triggerAttackRelease("8n")
-  ],
-
-  // 3 LOFI
-  [
-    ()=>kick.triggerAttackRelease("C1","8n"),
-    ()=>rim.triggerAttackRelease("C3","16n"),
-    ()=>hihat.triggerAttackRelease("16n"),
-    ()=>playChord(currentRoot,"minor",5)
-  ],
-
-  // 4 EDM
-  [
-    ()=>kick.triggerAttackRelease("C1","8n"),
-    ()=>snare.triggerAttackRelease("16n"),
-    ()=>hihat.triggerAttackRelease("16n"),
-    ()=>crash.triggerAttackRelease("8n")
-  ],
-
-  // 5 BASS
-  [
-    ()=>playBass(currentRoot+"1"),
-    ()=>playBass(currentRoot+"2"),
-    ()=>playBass(currentRoot+"3"),
-    ()=>playBass(currentRoot+"2")
-  ],
-
-  // 6 CHORDS
-  [
-    ()=>playChord(currentRoot,"major",4),
-    ()=>playChord(currentRoot,"minor",4),
-    ()=>playChord(currentRoot,"seventh",4),
-    ()=>playChord(currentRoot,"major",5)
-  ],
-
-  // 7 ARP
-  [
-    ()=>playArp(currentRoot),
-    ()=>playArp(currentRoot),
-    ()=>playArp(currentRoot),
-    ()=>playArp(currentRoot)
-  ],
-
-  // 8 FX
-  [
-    ()=>crash.triggerAttackRelease("8n"),
-    ()=>openHat.triggerAttackRelease("8n"),
-    ()=>{
-      const note=["C4","D#4","F4","G#4"][Math.floor(Math.random()*4)];
-      piano.triggerAttackRelease(note,"8n");
-    },
-    ()=>playChord(currentRoot,"major",6)
-  ],
-
-  // 9 HYBRID
-  [
-    ()=>{
-      kick.triggerAttackRelease("C1","8n");
-      playBass(currentRoot+"2");
-    },
-    ()=>{
-      snare.triggerAttackRelease("8n");
-      playChord(currentRoot,"minor",4);
-    },
-    ()=>{
-      hihat.triggerAttackRelease("16n");
-      playArp(currentRoot);
-    },
-    ()=>{
-      crash.triggerAttackRelease("8n");
-      playChord(currentRoot,"major",5);
-    }
-  ]
-
+// 0 GROOVE ENGINE
+[
+  ()=>kick.triggerAttackRelease("C1","8n"),            // Q light kick
+  ()=>hihat.triggerAttackRelease("16n"),               // W groove
+  ()=>kick.triggerAttackRelease("C1","8n"),            // E strong kick
+  ()=>{ kick.triggerAttackRelease("C1","8n"); playBass(currentRoot+"2"); } // R ⭐ main hit
+],
+// 1 BACKBEAT
+[
+  ()=>snare.triggerAttackRelease("16n"),               // A ghost
+  ()=>hihat.triggerAttackRelease("32n"),               // S fast hat
+  ()=>snare.triggerAttackRelease("8n"),                // D main snare
+  ()=>clap.triggerAttackRelease("8n")                  // F ⭐ strong accent
+],
+// 2 BASS DRIVER
+[
+  ()=>playBass(currentRoot+"1"),                       // Z low
+  ()=>playBass(currentRoot+"2"),                       // X mid
+  ()=>playBass(currentRoot+"3"),                       // C high
+  ()=>playBass(currentRoot+"2")                        // V ⭐ groove anchor
+],
+// 3 MOTION
+[
+  ()=>hihat.triggerAttackRelease("32n"),               // Q ghost
+  ()=>hihat.triggerAttackRelease("16n"),               // W groove
+  ()=>ride.triggerAttackRelease("16n"),                // E texture
+  ()=>openHat.triggerAttackRelease("8n")               // R ⭐ accent motion
+],
+// 4 IMPACT
+[
+  ()=>crash.triggerAttackRelease("8n"),                // Z crash
+  ()=>tom.triggerAttackRelease("C2","8n"),             // X fill
+  ()=>snare.triggerAttackRelease("16n"),               // C roll
+  ()=>crash.triggerAttackRelease("8n")                 // V ⭐ big impact
+],
 ];
 
 // =======================
@@ -534,6 +564,13 @@ document.addEventListener("keydown",(e)=>{
   }
 
   // 🎛 LEFT SIDE (ALL 3 ROWS WORK)
+  // 🌌 PAD CONTROLS
+  if(key === "b") playPad("major");
+  if(key === "n") playPad("minor");
+  if(key === "m") playPad("dream");
+  if(key === ",") playPad("low");
+  if(key === ".") playPad("high");
+  if(key === "/") stopPad();
   const leftRows = [
     ["q","w","e","r"],
     ["a","s","d","f"],
